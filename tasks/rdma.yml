@@ -1,17 +1,16 @@
 ---
 - name: Ensure RDMA packages are installed
-  package:
+  ansible.builtin.package:
     name: "{{ beegfs_distro_vars[ansible_os_family]['rdma_dev_pkgs'] }}"
     state: "{{ beegfs_package_action }}"
   become: true
 
 - name: Ensure RDMA kernel modules are loaded
-  modprobe:
+  community.general.modprobe:
     name: "{{ item }}"
     state: present
   become: true
-  with_items:
+  loop:
     - "ib_umad"
     - "ib_uverbs"
     - "rdma_ucm"
-...

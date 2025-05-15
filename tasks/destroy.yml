@@ -1,14 +1,14 @@
 ---
 - name: Unmount client mount path
-  mount:
+  ansible.posix.mount:
     path: "{{ item.path }}"
     state: unmounted
   become: true
   when: beegfs_enable.client | bool
-  with_items: "{{ beegfs_client }}"
+  loop: "{{ beegfs_client }}"
 
 - name: Stop and disable BeeGFS client services
-  service:
+  ansible.builtin.service:
     name: "{{ item.name }}"
     enabled: false
     state: stopped
@@ -19,7 +19,7 @@
     - { name: beegfs-client, enable: "{{ beegfs_enable.client }}" }
 
 - name: (Backward compatible) Stop and disable BeeGFS storage service
-  service:
+  ansible.builtin.service:
     name: "beegfs-storage@{{ item.dev }}"
     enabled: false
     state: stopped
@@ -27,56 +27,56 @@
   when:
     - beegfs_enable.oss | bool
     - item.dev is defined
-  with_items: "{{ beegfs_oss }}"
+  loop: "{{ beegfs_oss }}"
 
 - name: Stop and disable BeeGFS storage services
-  service:
+  ansible.builtin.service:
     name: "beegfs-storage@{{ item.port }}"
     enabled: false
     state: stopped
   become: true
   when: beegfs_enable.oss | bool
-  with_items: "{{ beegfs_oss }}"
+  loop: "{{ beegfs_oss }}"
 
 - name: Stop and disable BeeGFS server services
-  service:
+  ansible.builtin.service:
     name: "{{ item.name }}"
     enabled: false
     state: stopped
   become: true
   when: item.enable | bool
-  with_items:
+  loop:
     - { name: beegfs-mgmtd, enable: "{{ beegfs_enable.mgmt }}" }
     - { name: beegfs-meta, enable: "{{ beegfs_enable.meta }}" }
     - { name: beegfs-mon, enable: "{{ beegfs_enable.mon }}" }
     - { name: beegfs-oss-tuning, enable: "{{ beegfs_enable.tuning }}" }
 
 - name: Clear storeStorageDirectory
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "/etc/beegfs/{{ item.port }}.d/beegfs-storage.conf"
     regexp: "^storeStorageDirectory"
     line: "storeStorageDirectory ="
-  with_items: "{{ beegfs_oss }}"
+  loop: "{{ beegfs_oss }}"
   become: true
   when: beegfs_enable.oss | bool
 
 - name: Clear storeFsUUID
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "/etc/beegfs/{{ item.port }}.d/beegfs-storage.conf"
     regexp: "^storeFsUUID"
     line: "storeFsUUID ="
-  with_items: "{{ beegfs_oss }}"
+  loop: "{{ beegfs_oss }}"
   become: true
   when: beegfs_enable.oss | bool
 
 - name: Unmount BeeGFS oss paths if mounted
   vars:
     oss_path: "{{ item.path | default(beegfs_oss_path_prefix + item.dev) }}"
-  mount:
+  ansible.posix.mount:
     path: "{{ oss_path }}"
     state: unmounted
   become: true
-  with_items: "{{ beegfs_oss }}"
+  loop: "{{ beegfs_oss }}"
   when:
     - beegfs_enable.oss | bool
     - item.dev is defined
@@ -84,18 +84,18 @@
 - name: Remove all beegfs oss folders
   vars:
     oss_path: "{{ beegfs_oss_path_prefix + item.dev }}"
-  file:
+  ansible.builtin.file:
     path: "{{ oss_path }}"
     state: absent
   become: true
-  with_items: "{{ beegfs_oss }}"
+  loop: "{{ beegfs_oss }}"
   when:
     - beegfs_enable.oss | bool
     - item.dev is defined
 
 - name: Ensure meta device is not currently mounted
   become: true
-  mount:
+  ansible.posix.mount:
     path: "{{ beegfs_meta_path }}"
     state: unmounted
   when:
@@ -104,12 +104,12 @@
     - beegfs_meta_dev != None
 
 - name: Remove other beegfs folders
-  file:
+  ansible.builtin.file:
     path: "{{ item.name }}"
     state: absent
   become: true
   when: item.enable | bool
-  with_items:
+  loop:
     - { name: "{{ beegfs_meta_path }}", enable: "{{ beegfs_enable.meta }}" }
     - { name: "{{ beegfs_mgmt_path }}", enable: "{{ beegfs_enable.mgmt }}" }
 ...

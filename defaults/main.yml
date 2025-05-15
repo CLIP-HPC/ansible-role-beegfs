@@ -24,9 +24,9 @@ beegfs_interfaces: []
 # Distribution-specific parameters
 beegfs_distro_vars:
   RedHat:
-    beegfs_repo_url: "https://www.beegfs.io/release/latest-stable/dists/beegfs-rhel7.repo"
-    beegfs_repo_key: "https://www.beegfs.io/release/latest-stable/gpg/RPM-GPG-KEY-beegfs"
-    beegfs_repo_file: "/etc/yum.repos.d/beegfs-rhel7.repo"
+    beegfs_repo_url: "https://www.beegfs.io/release/latest-stable/dists/beegfs-rhel{{ ansible_distribution_major_version }}.repo"
+    beegfs_repo_key: "https://www.beegfs.io/release/latest-stable/gpg/GPG-KEY-beegfs"
+    beegfs_repo_file: "/etc/yum.repos.d/beegfs-rhel{{ ansible_distribution_major_version }}.repo"
     kernel_dev_pkg: "kernel-devel"
     rdma_dev_pkgs:
       - "librdmacm"
@@ -70,7 +70,7 @@ beegfs_oss:
   - port: 8003
     dev: "/dev/sdb"
     path:  # specifying dev overrides path
-beegfs_oss_tunable: "{{ beegfs_oss | selectattr('dev', 'defined') | map(attribute='dev') | map('relpath', '/dev/' ) | list }}"
+beegfs_oss_tunable: "{{ beegfs_oss | selectattr('dev', 'defined') | map(attribute='dev') | map('relpath', '/dev/') | list }}"
 # Whether to support multiple ports per OSS:
 # - if this is set to false, make sure that you configure the ports to the same
 #   value when passing beegfs_oss as an input.
@@ -103,10 +103,10 @@ beegfs_package_action: "{{ 'latest' if beegfs_update | bool else 'present' }}"
 beegfs_kernel_module: "/lib/modules/{{ ansible_kernel }}/updates/fs/beegfs_autobuild/beegfs.ko"
 
 # tuneNumWorkers settings for meta server
-beegfs_meta_tuneNumWorkers: 0
+beegfs_meta_tune_num_workers: 0
 
 # tuneNumWorkers settings for meta server
-beegfs_meta_tuneTargetChooser: randomized
+beegfs_meta_tune_target_chooser: randomized
 
 beegfs_enable_quota: false
 beegfs_client_scope_config: true

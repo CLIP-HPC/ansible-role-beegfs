@@ -1,53 +1,59 @@
 ---
 - name: Install packages for BeeGFS metadata server
-  package:
+  ansible.builtin.package:
     name: beegfs-meta
     state: "{{ beegfs_package_action }}"
   become: true
   notify: Restart BeeGFS meta service
 
 - name: Create directory for BeeGFS metadata
-  file:
+  ansible.builtin.file:
     path: "{{ beegfs_meta_path }}"
     state: directory
+    mode: "0755"
+    owner: root
+    group: root
   become: true
   notify: Restart BeeGFS meta service
 
 - name: Prepare metadata block storage
+  become: true
+  when:
+    - beegfs_meta_dev is defined
+    - beegfs_meta_dev != None
   block:
     - name: Format filesystem
       vars:
         meta_fstype: "{{ beegfs_meta_fstype | default(beegfs_fstype) }}"
-      filesystem:
+      community.general.filesystem:
         dev: "{{ beegfs_meta_dev }}"
         fstype: "{{ meta_fstype }}"
         opts: "{{ beegfs_meta_filesystem_opts }}"
         force: "{{ beegfs_force_format }}"
       notify: Restart BeeGFS meta service
+
     - name: Mount filesystem
       vars:
         meta_fstype: "{{ beegfs_meta_fstype | default(beegfs_fstype) }}"
-      mount:
+      ansible.posix.mount:
         src: "{{ beegfs_meta_dev }}"
         path: "{{ beegfs_meta_path }}"
         fstype: "{{ meta_fstype }}"
         opts: "{{ beegfs_meta_mount_opts }}"
         state: mounted
       notify: Restart BeeGFS meta service
-  become: true
-  when:
-    - beegfs_meta_dev is defined
-    - beegfs_meta_dev != None
 
 - name: Run metadata service setup script
-  command: "/opt/beegfs/sbin/beegfs-setup-meta -p {{ beegfs_meta_path }} -m {{ beegfs_mgmt_host }} {{ '-s ' + (beegfs_node_num_id | string) if beegfs_node_num_id }} -f"
+  ansible.builtin.command: >
+    /opt/beegfs/sbin/beegfs-setup-meta -p {{ beegfs_meta_path }} -m {{ beegfs_mgmt_host }}
+    "{{ '-s ' + (beegfs_node_num_id | string) if beegfs_node_num_id }} -f"
   args:
     creates: "{{ beegfs_meta_path }}/originalNodeID"
   become: true
   notify: Restart BeeGFS meta service
 
 - name: Specify connInterfacesFile
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/beegfs/beegfs-meta.conf
     regexp: "^connInterfacesFile"
     line: "connInterfacesFile           = /etc/beegfs/connInterfacesFile"
@@ -55,18 +61,18 @@
   notify: Restart BeeGFS meta service
 
 - name: Modify tuneTargetChooser settings
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/beegfs/beegfs-meta.conf
     regexp: "^tuneTargetChooser"
-    line: "tuneTargetChooser            = {{ beegfs_meta_tuneTargetChooser }}"
+    line: "tuneTargetChooser            = {{ beegfs_meta_tune_target_chooser }}"
   become: true
   notify: Restart BeeGFS meta service
 
 - name: Modify tuneNumWorkers settings
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/beegfs/beegfs-meta.conf
     regexp: "^tuneNumWorkers"
-    line: "tuneNumWorkers               = {{ beegfs_meta_tuneNumWorkers }}"
+    line: "tuneNumWorkers               = {{ beegfs_meta_tune_num_workers }}"
   become: true
   notify: Restart BeeGFS meta service
 ...

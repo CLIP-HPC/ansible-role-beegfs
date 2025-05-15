@@ -2,10 +2,10 @@
 - name: Converge
   hosts: all
   roles:
-    - role: ansible-role-beegfs
+    - role: vbc.beegfs
       beegfs_enable:
-        mgmt: "{{ inventory_hostname in groups['cluster_beegfs_mgmt'] }}"
         mon: false
+        mgmt: "{{ inventory_hostname in groups['cluster_beegfs_mgmt'] }}"
         meta: "{{ inventory_hostname in groups['cluster_beegfs_mds'] }}"
         oss: "{{ inventory_hostname in groups['cluster_beegfs_oss'] }}"
         tuning: "{{ inventory_hostname in groups['cluster_beegfs_oss'] }}"

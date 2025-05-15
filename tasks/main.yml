@@ -1,9 +1,9 @@
 ---
-- name: If beegfs_state is present
-  include: create.yml
+- name: Create BeeGFS cluster
+  ansible.builtin.import_tasks: create.yml
   when: beegfs_state | lower == "present"
 
-- name: If beegfs_state is absent
-  include: destroy.yml
+- name: Destroy BeegFS cluster
+  ansible.builtin.import_tasks: destroy.yml
   when: beegfs_state | lower == "absent"
 ...

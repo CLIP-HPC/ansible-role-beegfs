@@ -1,13 +1,13 @@
 ---
 - name: Install packages for BeeGFS monitoring
-  package:
+  ansible.builtin.package:
     name: beegfs-mon
     state: "{{ beegfs_package_action }}"
   become: true
   notify: Restart BeeGFS mon service
 
 - name: Configure beegfs-mon config file to point to the specified management host
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: "/etc/beegfs/beegfs-mon.conf"
     regexp: "^sysMgmtdHost"
     line: "sysMgmtdHost = {{ beegfs_mgmt_host }}"
@@ -15,7 +15,7 @@
   notify: Restart BeeGFS mon service
 
 - name: Configure beegfs-mon config file to point dbHostName to influxdb
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/beegfs/beegfs-mon.conf
     regexp: "^dbHostName"
     line: "dbHostName                   = {{ beegfs_mon_db_hostname }}"
@@ -24,7 +24,7 @@
   when: beegfs_mon_db_hostname | length > 0
 
 - name: Configure beegfs-mon config file to point dbDatabase in influxdb
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/beegfs/beegfs-mon.conf
     regexp: "^dbDatabase"
     line: "dbDatabase                   = {{ beegfs_mon_db_database }}"
@@ -33,11 +33,10 @@
   when: beegfs_mon_db_database | length > 0
 
 - name: Configure beegfs-mon config file to set dbport
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/beegfs/beegfs-mon.conf
     regexp: "^dbHostPort"
     line: "dbHostPort                   = {{ beegfs_mon_db_port }}"
   become: true
   notify: Restart BeeGFS mon service
   when: beegfs_mon_db_port != None
-...
