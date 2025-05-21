@@ -1,9 +1,11 @@
 ---
 - name: Create BeeGFS cluster
-  ansible.builtin.import_tasks: create.yml
+  ansible.builtin.include_tasks: create.yml
   when: beegfs_state | lower == "present"
+  tags: always
 
 - name: Destroy BeegFS cluster
-  ansible.builtin.import_tasks: destroy.yml
+  ansible.builtin.include_tasks: destroy.yml
   when: beegfs_state | lower == "absent"
+  tags: always
 ...

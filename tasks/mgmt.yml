@@ -1,32 +1,33 @@
 ---
 - name: Install packages for BeeGFS management server
   ansible.builtin.package:
-    name: beegfs-mgmtd
+    name:
+      - beegfs-mgmtd
     state: "{{ beegfs_package_action }}"
   become: true
   notify: Restart BeeGFS mgmt service
 
-- name: Create directory for BeeGFS management service data
-  ansible.builtin.file:
-    path: "{{ beegfs_mgmt_path }}"
-    state: directory
-    mode: "0755"
-    owner: root
-    group: root
+- name: Disable TLS authentication (Development)
+  ansible.builtin.lineinfile:
+    path: /etc/beegfs/beegfs-mgmtd.toml
+    insertafter: "^# tls-disable ="
+    regexp: "^tls-disable ="
+    line: "tls-disable = {{ beegfs_disable_tls | lower }}"
+  become: true
+  notify: Restart BeeGFS mgmt service
+
+- name: Adapt database file location
+  ansible.builtin.lineinfile:
+    path: /etc/beegfs/beegfs-mgmtd.toml
+    regexp: "^db-file ="
+    line: "db-file = '{{ beegfs_mgmt_path }}/mgmtd.sqlite'"
+    insertafter: "^# db-file ="
   become: true
   notify: Restart BeeGFS mgmt service
 
 - name: Run management service setup script
-  ansible.builtin.command: "/opt/beegfs/sbin/beegfs-setup-mgmtd -p {{ beegfs_mgmt_path }} -f"
+  ansible.builtin.command: "/opt/beegfs/sbin/beegfs-mgmtd --init"
   args:
-    creates: "{{ beegfs_mgmt_path }}/originalNodeID"
-  become: true
-  notify: Restart BeeGFS mgmt service
-
-- name: Specify connInterfacesFile
-  ansible.builtin.lineinfile:
-    path: /etc/beegfs/beegfs-mgmtd.conf
-    regexp: "^connInterfacesFile"
-    line: "connInterfacesFile           = /etc/beegfs/connInterfacesFile"
+    creates: "{{ beegfs_mgmt_path }}/mgmtd.sqlite"
   become: true
   notify: Restart BeeGFS mgmt service

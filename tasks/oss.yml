@@ -1,7 +1,9 @@
 ---
 - name: Install packages for BeeGFS object storage server
   ansible.builtin.package:
-    name: beegfs-storage
+    name:
+      - beegfs-storage
+      - libbeegfs-ib # Infiniband support
     state: "{{ beegfs_package_action }}"
   become: true
   notify: Restart BeeGFS storage service
@@ -18,7 +20,17 @@
     owner: root
     group: root
   become: true
-  notify: Restart BeeGFS storage service
+
+- name: Create connInterfacesFile
+  vars:
+    beegfs_interfaces: "{{ interfaces }}"
+  ansible.builtin.template:
+    src: connInterfacesFile.j2
+    dest: /etc/beegfs/{{ oss_port }}.d/connInterfacesFile
+    mode: "0644"
+    owner: root
+    group: root
+  become: true
 
 - name: Add template beegfs-storage conf
   ansible.builtin.copy:
@@ -32,87 +44,11 @@
   become: true
   notify: Restart BeeGFS storage service
 
-- name: Prepare storage devices
-  become: true
-  when: oss_dev_is_defined
-  block:
-    - name: Stat the OSS device
-      ansible.builtin.stat:
-        path: "{{ oss_dev }}"
-      register: oss_dev_stat
-
-    - name: Fail if OSS device does not exist
-      ansible.builtin.fail:
-        msg: OSS device {{ oss_dev }} does not exist
-      when: not oss_dev_stat.stat.exists
-
-    - name: Unmount storage device if beegfs_force_format is true
-      ansible.posix.mount:
-        path: "{{ oss_path }}"
-        state: unmounted
-      when: beegfs_force_format | bool
-      notify: Restart BeeGFS storage service
-
-    - name: Attempt to format if the device is not mounted or if beegfs_force_format is true
-      vars:
-        oss_dev_real: "{{ oss_dev_stat.stat.lnk_source if oss_dev_stat.stat.islnk else oss_dev_stat.stat.path }}"
-      community.general.filesystem:
-        dev: "{{ oss_dev }}"
-        fstype: "{{ beegfs_fstype }}"
-        force: "{{ beegfs_force_format | bool }}"
-        opts: "{{ beegfs_filesystem_opts }}"
-      when: (oss_dev_real not in mounted_devs) or (beegfs_force_format | bool)
-      notify: Restart BeeGFS storage service
-
-    - name: Ensure the mount point exists
-      ansible.builtin.file:
-        path: "{{ oss_path }}"
-        state: directory
-        mode: "0755"
-        owner: root
-        group: root
-
-    - name: Mount filesystem, fail if the fstype doesn't match
-      ansible.posix.mount:
-        src: "{{ oss_dev }}"
-        path: "{{ oss_path }}"
-        fstype: "{{ beegfs_fstype }}"
-        state: mounted
-        opts: "{{ beegfs_mount_opts }}"
-      notify: Restart BeeGFS storage service
-
-- name: Run storage service setup script
-  ansible.builtin.command: |
-    /opt/beegfs/sbin/beegfs-setup-storage -f \
-    -p {{ oss_path }} {{ oss_replace }} \
-    -m {{ beegfs_mgmt_host }} \
-    -c /etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf \
-    {{ '-s ' + (beegfs_node_num_id | string) if beegfs_node_num_id }} \
-    {{ '-i ' + oss_num_id if oss_num_id }}
-  args:
-    creates: "{{ oss_path }}/originalNodeID"
-  become: true
-  notify: Restart BeeGFS storage service
-
-- name: Set TCP storage port
+- name: Set Storage Port
   ansible.builtin.lineinfile:
     path: "/etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf"
-    regexp: '^connStoragePortTCP'
-    line: "connStoragePortTCP = {{ oss_port }}"
-    owner: root
-    group: root
-    mode: "0644"
-  become: true
-  notify: Restart BeeGFS storage service
-
-- name: Set UDP storage port
-  ansible.builtin.lineinfile:
-    path: "/etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf"
-    regexp: '^connStoragePortUDP'
-    line: "connStoragePortUDP = {{ oss_port }}"
-    owner: root
-    group: root
-    mode: "0644"
+    regexp: '^connStoragePort'
+    line: "connStoragePort = {{ oss_port }}"
   become: true
   notify: Restart BeeGFS storage service
 
@@ -120,9 +56,43 @@
   ansible.builtin.lineinfile:
     path: "/etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf"
     regexp: "^connInterfacesFile"
-    line: "connInterfacesFile           = /etc/beegfs/connInterfacesFile"
+    line: "connInterfacesFile           = /etc/beegfs/{{ oss_port }}.d/connInterfacesFile"
     owner: root
     group: root
     mode: "0644"
+  become: true
+  notify: Restart BeeGFS storage service
+
+- name: Prepare storage devices
+  ansible.builtin.include_tasks: fs.yml
+  vars:
+    oss_path: "{{ beegfs_oss_path_prefix + oss_dev }}"
+  tags: ["beegfs", "oss", "fs"]
+  args:
+    apply:
+      tags: ["beegfs", "oss", "fs"]
+  loop: "{{ oss_devices }}"
+  loop_control:
+    loop_var: oss_dev
+
+
+- name: Run storage service setup script
+  vars:
+    oss_path: "{{ beegfs_oss_path_prefix + item }}"
+    oss_replace: "{{ '-r' if ix == 0 else '' }}"
+    oss_target_id: "{{ (oss_num_id | int) + (ix + 1) }}"
+  loop: "{{ oss_devices }}"
+  loop_control:
+    index_var: ix
+  ansible.builtin.command: |
+    /opt/beegfs/sbin/beegfs-setup-storage -f \
+    -p {{ oss_path }}  \
+    {{ oss_replace }} \
+    -m {{ beegfs_mgmt_host }} \
+    -c /etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf \
+    -s {{ oss_num_id | int }} \
+    -i {{ oss_target_id | int }} \
+  args:
+    creates: "{{ oss_path }}/targetNumID"
   become: true
   notify: Restart BeeGFS storage service

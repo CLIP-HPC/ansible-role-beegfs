@@ -19,12 +19,6 @@ def test_beegfs_mgmtd_service(host):
     assert s.is_enabled
 
 
-def test_beegfs_helperd_service(host):
-    s = host.service("beegfs-helperd")
-    assert s.is_running
-    assert s.is_enabled
-
-
 def test_beegfs_client_service(host):
     s = host.service("beegfs-client")
     assert s.is_running

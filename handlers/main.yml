@@ -2,7 +2,7 @@
 - name: Restart BeeGFS mgmt service
   ansible.builtin.service:
     name: beegfs-mgmtd
-    daemon-reload: true
+    daemon_reload: true
     state: restarted
   become: true
   when: beegfs_enable.mgmt | bool
@@ -10,47 +10,32 @@
 - name: Restart BeeGFS meta service
   ansible.builtin.service:
     name: beegfs-meta
-    daemon-reload: true
+    daemon_reload: true
     state: restarted
   become: true
   when: beegfs_enable.meta | bool
 
 - name: Restart BeeGFS storage service
   ansible.builtin.service:
-    name: "beegfs-storage@{{ item.port }}"
-    daemon-reload: true
+    name: "beegfs-storage@{{ item.key }}"
+    daemon_reload: true
     state: restarted
   become: true
-  with_items: "{{ beegfs_oss }}"
+  loop: "{{ beegfs_oss | dict2items }}"
   when: beegfs_enable.oss | bool
 
 - name: Restart BeeGFS mon service
   ansible.builtin.service:
     name: beegfs-mon
-    daemon-reload: true
+    daemon_reload: true
     state: restarted
   become: true
   when: beegfs_enable.mon | bool
 
-- name: Restart BeeGFS client service
-  ansible.builtin.service:
-    name: "{{ item }}"
-    daemon-reload: true
-    state: restarted
-  become: true
-  with_items:
-    - beegfs-helperd
-    - beegfs-client
-  when: beegfs_enable.client | bool
-  retries: 3
-  delay: 3
-  register: result
-  until: result is success
-
 - name: Restart BeeGFS tuning service
   ansible.builtin.service:
     name: beegfs-oss-tuning
-    daemon-reload: true
+    daemon_reload: true
     state: restarted
   become: true
 ...

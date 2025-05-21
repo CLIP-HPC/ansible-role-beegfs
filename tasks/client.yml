@@ -1,136 +1,138 @@
 ---
-- name: Install packages for BeeGFS client
-  ansible.builtin.package:
-    name:
-      - elfutils-libelf-devel
-      - beegfs-client
-      - beegfs-helperd
-      - beegfs-utils
-    state: "present"
-  become: true
-  notify: Restart BeeGFS client service
-
-- name: Define client kernel build for IB
-  ansible.builtin.lineinfile:
-    path: "/etc/beegfs/beegfs-client-autobuild.conf"
-    regexp: "^buildArgs="
-    line: "{{ item.line }}"
-  when: item.condition
-  become: true
-  loop:
-    - { line: "buildArgs=-j8 OFED_INCLUDE_PATH={{ beegfs_client_ofed_include_path }}", condition: "{{ beegfs_client_ofed_include_path }}" }
-    - { line: "buildArgs=-j8", condition: "{{ not beegfs_client_ofed_include_path }}" }
-  notify: Restart BeeGFS client service
-
 - name: Ensure kernel development headers are present
-  ansible.builtin.package:
-    name: "{{ beegfs_distro_vars[ansible_os_family]['kernel_dev_pkg'] }}"
+  ansible.builtin.dnf:
+    name: "{{ beegfs_distro_vars[ansible_os_family]['kernel_dev_pkg'] }}-{{ ansible_kernel }}"
     state: present
   become: true
-  notify: Restart BeeGFS client service
 
 - name: Ensure gcc is installed
   ansible.builtin.package:
     name: "gcc"
     state: present
   become: true
-  notify: Restart BeeGFS client service
 
-- name: Ensure the BeeGFS mount point exists
+- name: Define override for beegfs-client-build.mk
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/beegfs/beegfs-client-build.mk
+    mode: "0644"
+    content: |
+      # BeeGFS client module DKMS build configuration
+      # This file is only used when building via DKMS.
+      # The module needs to be rebuilt after this file has been changed.
+
+      # If using thirdparty OFED specify the path to the installation here.
+      # Examples:
+      #OFED_INCLUDE_PATH=/usr/src/ofa_kernel/default/include
+      #OFED_INCLUDE_PATH=/usr/src/openib/include
+      {% if beegfs_client_ofed_include_path %}
+      OFED_INCLUDE_PATH={{ beegfs_client_ofed_include_path }}
+      {% endif %}
+
+- name: Install DKMS packages
+  ansible.builtin.package:
+    name: "dkms"
+    state: present
+  become: true
+
+- name: Install packages for BeeGFS client
+  ansible.builtin.package:
+    name:
+      - beegfs-client-dkms
+      - beegfs-tools
+      - beegfs-utils
+    state: "present"
+  become: true
+
+
+- name: Ensure the BeeGFS mount points exists
   ansible.builtin.file:
     mode: "0755"
-    path: "{{ client_path }}"
+    path: "{{ item.path }}"
     state: directory
+  loop: "{{ beegfs_client_mounts | default([]) }}"
   become: true
-  notify: Restart BeeGFS client service
 
-- name: Copy over beegfs-mounts config file
-  ansible.builtin.template:
-    src: beegfs-mounts.conf.j2
-    dest: /etc/beegfs/beegfs-mounts.conf
-    mode: "0644"
+
+- name: Make of copy of BeeGFS client config file if it doesn't exist
   become: true
-  notify: Restart BeeGFS client service
-
-- name: Make a copy of BeeGFS client config file if it doesn't exist
   ansible.builtin.copy:
     mode: "0644"
     remote_src: true
     src: /etc/beegfs/beegfs-client.conf
-    dest: "/etc/beegfs/{{ beegfs_client_config_file }}"
+    dest: /etc/beegfs/beegfs-client-{{ item.port }}.conf
     force: false
-  become: true
-  when: beegfs_client_scope_config | bool
-  notify: Restart BeeGFS client service
+  loop: "{{ beegfs_client_mounts | default([]) }}"
+  when: beegfs_client_mounts | length > 1
+
 
 - name: Configure beegfs-client config file to point to the specified management host
-  ansible.builtin.lineinfile:
-    dest: "/etc/beegfs/{{ beegfs_client_config_file }}"
-    regexp: "^sysMgmtdHost"
-    line: "sysMgmtdHost = {{ client_mgmt_host }}"
   become: true
-  notify: Restart BeeGFS client service
+  vars:
+    beegfs_client_config_file: "{{ (beegfs_client_mounts | length > 1) | ternary('beegfs-client-{{ item.port }}.conf', 'beegfs-client.conf') }}"
+  ansible.builtin.lineinfile:
+    dest: /etc/beegfs/{{ beegfs_client_config_file }}
+    regexp: ^sysMgmtdHost
+    line: sysMgmtdHost = {{ beegfs_mgmt_host }}
+  loop: "{{ beegfs_client_mounts | default([]) }}"
+
 
 - name: Configure beegfs-client config file to use the specified port
+  become: true
+  vars:
+    beegfs_client_config_file: "{{ (beegfs_client_mounts | length > 1) | ternary('beegfs-client-{{ item.port }}.conf', 'beegfs-client.conf') }}"
   ansible.builtin.lineinfile:
-    dest: "/etc/beegfs/{{ beegfs_client_config_file }}"
-    regexp: "^connClientPortUDP"
-    line: "connClientPortUDP = {{ client_port }}"
-  become: true
-  notify: Restart BeeGFS client service
+    dest: /etc/beegfs/{{ beegfs_client_config_file }}
+    regexp: ^connClientPort
+    line: connClientPort                = {{ item.port }}
+  loop: "{{ beegfs_client_mounts | default([]) }}"
 
-- name: Configure beegfs-client config file to ensure the specified connection interface is used
+- name: Configure beegfs-client config file to ensure the specifed connection interface is used
+  become: true
+  vars:
+    beegfs_client_config_file: "{{ (beegfs_client_mounts | length > 1) | ternary('beegfs-client-{{ item.port }}.conf', 'beegfs-client.conf') }}"
   ansible.builtin.lineinfile:
-    dest: "/etc/beegfs/{{ beegfs_client_config_file }}"
-    regexp: "^connInterfacesFile"
-    line: "connInterfacesFile = /etc/beegfs/connInterfacesFile"
-  become: true
-  notify: Restart BeeGFS client service
-
-
-- name: Copy beegfs-client.service.d/ to /etc/systemd/system/
-  ansible.builtin.copy:
-    src: beegfs-client.service.d/
-    dest: /etc/systemd/system/beegfs-client.service.d/
-    mode: "0755"
-    owner: root
-    group: root
-  notify: Restart BeeGFS client service
-  become: true
-
+    dest: /etc/beegfs/{{ beegfs_client_config_file }}
+    regexp: ^connInterfacesFile
+    line: connInterfacesFile            = /etc/beegfs/connInterfacesFile
+  loop: "{{ beegfs_client_mounts | default([]) }}"
 
 - name: Configure beegfs-client config file to enable quota support
+  become: true
+  vars:
+    beegfs_client_config_file: "{{ (beegfs_client_mounts | length > 1) | ternary('beegfs-client-{{ item.port }}.conf', 'beegfs-client.conf') }}"
   ansible.builtin.lineinfile:
-    dest: "/etc/beegfs/{{ beegfs_client_config_file }}"
-    regexp: "^quotaEnabled"
-    line: "quotaEnabled = {{ (beegfs_enable_quota | bool) | ternary('true', 'false') }}"
+    dest: /etc/beegfs/{{ beegfs_client_config_file }}
+    regexp: ^quotaEnabled
+    line: quotaEnabled                  = {{ (beegfs_enable_quota | bool) | ternary('true', 'false') }}
+  loop: "{{ beegfs_client_mounts | default([]) }}"
+
+- name: Make sure to load beegfs module after reboot
   become: true
-  notify: Restart BeeGFS client service
-
-
-- name: Configure beegfs-client config file to enable/disable RDMA
-  ansible.builtin.lineinfile:
-    dest: "/etc/beegfs/{{ beegfs_client_config_file }}"
-    regexp: "^connUseRDMA"
-    line: "connUseRDMA = {{ (beegfs_rdma | bool) | ternary('true', 'false') }}"
-  become: true
-  notify: Restart BeeGFS client service
-
-- name: Rebuild the BeeGFS client kernel module
-  ansible.builtin.command: /etc/init.d/beegfs-client rebuild
-  args:
-    creates: "{{ beegfs_kernel_module }}"
-  become: true
-  notify: Restart BeeGFS client service
-
-- name: Copy default beegfs-client config file to enable beegfs_ctl in the management host
   ansible.builtin.copy:
-    remote_src: true
-    dest: /etc/beegfs/beegfs-client.conf
-    src: "/etc/beegfs/beegfs-client-{{ client_mgmt_host }}.conf"
-    force: true
-    owner: root
-    group: root
     mode: "0644"
-  when: client_mgmt_host == inventory_hostname and not (beegfs_client_scope_config | bool)
+    dest: /etc/modules-load.d/beegfs-client-dkms.conf
+    content: |
+      # Load the BeeGFS client module at boot
+      beegfs
+
+- name: Load beegfs module
   become: true
+  community.general.modprobe:
+    name: beegfs
+    state: present
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Mount beegfs storage
+  become: true
+  vars:
+    beegfs_client_config_file: "{{ (beegfs_client_mounts | length > 1) | ternary('beegfs-client-{{ item.port }}.conf', 'beegfs-client.conf') }}"
+  ansible.posix.mount:
+    fstype: beegfs
+    name: "{{ item.path }}"
+    opts: rw,relatime,cfgFile=/etc/beegfs/{{ beegfs_client_config_file }},_netdev
+    src: beegfs_nodev
+    state: mounted
+  loop: "{{ beegfs_client_mounts | default([]) }}"

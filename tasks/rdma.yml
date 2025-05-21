@@ -9,6 +9,7 @@
   community.general.modprobe:
     name: "{{ item }}"
     state: present
+    persistent: present
   become: true
   loop:
     - "ib_umad"

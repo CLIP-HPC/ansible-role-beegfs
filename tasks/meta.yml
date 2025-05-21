@@ -1,7 +1,9 @@
 ---
 - name: Install packages for BeeGFS metadata server
   ansible.builtin.package:
-    name: beegfs-meta
+    name:
+      - beegfs-meta
+      - libbeegfs-ib # Infiniband support
     state: "{{ beegfs_package_action }}"
   become: true
   notify: Restart BeeGFS meta service
@@ -44,11 +46,13 @@
       notify: Restart BeeGFS meta service
 
 - name: Run metadata service setup script
+  vars:
+    beegfs_meta_node_id: "{{ (beegfs_node_num_id | int + 1 * beegfs_target_id_multiplier / 10) | int }}"
   ansible.builtin.command: >
-    /opt/beegfs/sbin/beegfs-setup-meta -p {{ beegfs_meta_path }} -m {{ beegfs_mgmt_host }}
-    "{{ '-s ' + (beegfs_node_num_id | string) if beegfs_node_num_id }} -f"
+    /opt/beegfs/sbin/beegfs-setup-meta -f  -p {{ beegfs_meta_path }} -m {{ beegfs_mgmt_host }}
+    "-s {{ beegfs_meta_node_id | int }}"
   args:
-    creates: "{{ beegfs_meta_path }}/originalNodeID"
+    creates: "{{ beegfs_meta_path }}/nodeNumID"
   become: true
   notify: Restart BeeGFS meta service
 

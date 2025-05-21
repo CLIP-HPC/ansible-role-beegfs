@@ -1,0 +1,45 @@
+- name: Stat the OSS device
+  ansible.builtin.stat:
+    path: "{{ oss_dev }}"
+  register: oss_dev_stat
+
+- name: Fail if OSS device does not exist
+  ansible.builtin.fail:
+    msg: OSS device {{ oss_dev }} does not exist
+  when: not oss_dev_stat.stat.exists
+
+- name: Unmount storage device if beegfs_force_format is true
+  become: true
+  ansible.posix.mount:
+    path: "{{ oss_path }}"
+    state: unmounted
+  when: beegfs_force_format | bool
+
+- name: Attempt to format if the device is not mounted or if beegfs_force_format is true
+  vars:
+    oss_dev_real: "{{ oss_dev_stat.stat.lnk_source if oss_dev_stat.stat.islnk else oss_dev_stat.stat.path }}"
+  community.general.filesystem:
+    dev: "{{ oss_dev }}"
+    fstype: "{{ beegfs_fstype }}"
+    force: "{{ beegfs_force_format | bool }}"
+    opts: "{{ beegfs_filesystem_opts }}"
+  when: (oss_dev_real not in mounted_devs) or (beegfs_force_format | bool)
+  become: true
+
+- name: Ensure the mount point exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ oss_path }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Mount filesystem, fail if the fstype doesn't match
+  become: true
+  ansible.posix.mount:
+    src: "{{ oss_dev }}"
+    path: "{{ oss_path }}"
+    fstype: "{{ beegfs_fstype }}"
+    state: mounted
+    opts: "{{ beegfs_mount_opts }}"

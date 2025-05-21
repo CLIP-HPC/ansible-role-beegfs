@@ -29,13 +29,16 @@ beegfs_distro_vars:
     beegfs_repo_file: "/etc/yum.repos.d/beegfs-rhel{{ ansible_distribution_major_version }}.repo"
     kernel_dev_pkg: "kernel-devel"
     rdma_dev_pkgs:
-      - "librdmacm"
-      - "libibmad"
-      - "libibumad"
-      - "rdma-core"
-      - "libibverbs"
-      - "libibverbs-utils"
-      - "libbeegfs-ib"
+      - rdma-core
+      - libibverbs
+      - libibverbs-utils
+      - librdmacm
+      - libibumad
+      - opensm
+      - infiniband-diags
+      - srptools
+      - perftest
+      - librdmacm-utils
 
   Debian:
     beegfs_repo_url: "https://www.beegfs.io/release/latest-stable/dists/beegfs-deb9.list"
@@ -70,11 +73,8 @@ beegfs_oss:
   - port: 8003
     dev: "/dev/sdb"
     path:  # specifying dev overrides path
-beegfs_oss_tunable: "{{ beegfs_oss | selectattr('dev', 'defined') | map(attribute='dev') | map('relpath', '/dev/') | list }}"
-# Whether to support multiple ports per OSS:
-# - if this is set to false, make sure that you configure the ports to the same
-#   value when passing beegfs_oss as an input.
-beegfs_oss_multi_port: true
+# yamllint disable rule:line-length
+beegfs_oss_tunable: "{{ beegfs_oss | dict2items | selectattr('value.devices', 'defined') | map(attribute='value.devices') | flatten | map('relpath', '/dev/') | list }}"
 
 # Management options
 beegfs_mgmt_path: "/data/beegfs/beegfs_mgmtd"
@@ -122,4 +122,12 @@ beegfs_mon_db_database:
 beegfs_mon_db_port:
 
 beegfs_oss_max_sectors_kb: 256
+
+beegfs_meta_max_sectors_kb: 256
+
+# Set to a non-empty string to enable authentication
+beegfs_auth_secret:
+
+# Disable TLS authentication
+beegfs_disable_tls: false
 ...

@@ -8,6 +8,7 @@
     state: present
     reload: true
     sysctl_set: true
+    sysctl_file: /etc/sysctl.d/99-beegfs-oss-tuning.conf
   loop:
     - {key: 'vm.dirty_background_ratio', value: '5'}
     - {key: 'vm.dirty_ratio', value: '20'}

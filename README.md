@@ -132,7 +132,7 @@ following playbook:
           part_start: "{{ item.start }}"
           part_end: "{{ item.end }}"
           number: "{{ item.number }}"
-        with_items: "{{ partitions }}"
+        loop: "{{ partitions }}"
         become: true
     ...
 
