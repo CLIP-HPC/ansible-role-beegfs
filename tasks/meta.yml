@@ -56,7 +56,7 @@
   become: true
   notify: Restart BeeGFS meta service
 
-- name: Specify connInterfacesFile
+- name: Specify connInterfacesFile for BeeGFS metadata server
   ansible.builtin.lineinfile:
     path: /etc/beegfs/beegfs-meta.conf
     regexp: "^connInterfacesFile"
@@ -64,7 +64,7 @@
   become: true
   notify: Restart BeeGFS meta service
 
-- name: Modify tuneTargetChooser settings
+- name: Modify tuneTargetChooser settings for
   ansible.builtin.lineinfile:
     path: /etc/beegfs/beegfs-meta.conf
     regexp: "^tuneTargetChooser"
@@ -72,11 +72,44 @@
   become: true
   notify: Restart BeeGFS meta service
 
-- name: Modify tuneNumWorkers settings
+- name: Configure tuneNumWorkers settings for BeeGFS metadata server
   ansible.builtin.lineinfile:
     path: /etc/beegfs/beegfs-meta.conf
     regexp: "^tuneNumWorkers"
     line: "tuneNumWorkers               = {{ beegfs_meta_tune_num_workers }}"
   become: true
+  when: beegfs_meta_tune_num_workers
   notify: Restart BeeGFS meta service
-...
+
+
+- name: Configure connMaxInternodeNum for BeeGFS metadata server
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/beegfs/beegfs-meta.conf
+    regexp: "^connMaxInternodeNum"
+    line: connMaxInternodeNum           = {{ beegfs_conn_meta_max_internode_num }}
+    backrefs: true
+  when: beegfs_conn_meta_max_internode_num
+  notify: Restart BeeGFS meta service
+
+
+- name: Configure RMDA buffer size for BeeGFS metadata server
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/beegfs/beegfs-meta.conf
+    regexp: ^connRDMABufSize
+    line: connRDMABufSize               = {{ beegfs_conn_rdma_buf_size }}
+  when: beegfs_conn_rdma_buf_size
+  notify: Restart BeeGFS meta service
+
+
+- name: Configure RMDA buffer number for BeeGFS metadata server
+  become: true
+  vars:
+    beegfs_client_config_file: "{{ (beegfs_client_mounts | length > 1) | ternary('beegfs-client-{{ item.port }}.conf', 'beegfs-client.conf') }}"
+  ansible.builtin.lineinfile:
+    path: /etc/beegfs/beegfs-meta.conf
+    regexp: ^connRDMABufNum
+    line: connRDMABufNum                = {{ beegfs_conn_rdma_buf_num }}
+  when: beegfs_conn_rdma_buf_num
+  notify: Restart BeeGFS meta service

@@ -13,6 +13,7 @@
       - beegfs_node_num_id is defined
       - beegfs_node_num_id != None
     fail_msg: "beegfs_node_num_id must be set to a non-empty value"
+  when: beegfs_enable.oss | bool or beegfs_enable.meta | bool
   tags: always
 
 - name: Calculate and store BeeGFS node number

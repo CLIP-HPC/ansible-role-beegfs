@@ -96,3 +96,42 @@
     creates: "{{ oss_path }}/targetNumID"
   become: true
   notify: Restart BeeGFS storage service
+
+
+- name: Configure tuneNumWorkers settings for BeeGFS storage server
+  ansible.builtin.lineinfile:
+    path: /etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf
+    regexp: "^tuneNumWorkers"
+    line: "tuneNumWorkers               = {{ beegfs_oss_tune_num_workers }}"
+  become: true
+  when: beegfs_oss_tune_num_workers
+  notify: Restart BeeGFS storage service
+
+
+- name: Configure connMaxInternodeNum for BeeGFS storage server
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf
+    regexp: "^connMaxInternodeNum"
+    line: connMaxInternodeNum           = {{ beegfs_conn_oss_max_internode_num }}
+    backrefs: true
+  when: beegfs_conn_oss_max_internode_num
+  notify: Restart BeeGFS storage service
+
+- name: Configure RMDA buffer size for BeeGFS server
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf
+    regexp: ^connRDMABufSize
+    line: connRDMABufSize               = {{ beegfs_conn_rdma_buf_size }}
+  when: beegfs_conn_rdma_buf_size
+
+- name: Configure RMDA buffer number for BeeGFS server
+  become: true
+  vars:
+    beegfs_client_config_file: "{{ (beegfs_client_mounts | length > 1) | ternary('beegfs-client-{{ item.port }}.conf', 'beegfs-client.conf') }}"
+  ansible.builtin.lineinfile:
+    path: /etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf
+    regexp: ^connRDMABufNum
+    line: connRDMABufNum                = {{ beegfs_conn_rdma_buf_num }}
+  when: beegfs_conn_rdma_buf_num

@@ -14,9 +14,6 @@ beegfs_state: present
 # with what to multiply the nodeid to get the target id in case a node is explictly set
 beegfs_target_id_multiplier: 100
 
-# Kernel modules to ensure are loaded prior to BeeGFS deploy/startup
-beegfs_kmod_preload: []
-
 # Network interfaces in order of preference
 # (leaving empty means InfiniBand & RDMA enabled devices are preferred)
 beegfs_interfaces: []
@@ -99,16 +96,9 @@ beegfs_client: []
 beegfs_update: false
 beegfs_package_action: "{{ 'latest' if beegfs_update | bool else 'present' }}"
 
-# Path to the kernel module
-beegfs_kernel_module: "/lib/modules/{{ ansible_kernel }}/updates/fs/beegfs_autobuild/beegfs.ko"
-
-# tuneNumWorkers settings for meta server
-beegfs_meta_tune_num_workers: 0
-
-# tuneNumWorkers settings for meta server
-beegfs_meta_tune_target_chooser: randomized
 
 beegfs_enable_quota: false
+
 beegfs_client_scope_config: true
 
 beegfs_client_ofed_include_path:
@@ -130,4 +120,28 @@ beegfs_auth_secret:
 
 # Disable TLS authentication
 beegfs_disable_tls: false
+
+# Tunings
+# tuneNumWorkers settings for meta server
+# 100 - 200 computes = 64. Large cluster 128
+# https://doc.beegfs.io/latest/advanced_topics/metadata_tuning.html#worker-threads
+beegfs_meta_tune_num_workers:
+
+# tuneNumWorkers settings for storage server
+# https://doc.beegfs.io/latest/advanced_topics/storage_tuning.html#worker-threads
+beegfs_oss_tune_num_workers:
+
+# tuneNumWorkers settings for meta server
+beegfs_meta_tune_target_chooser: randomized
+
+beegfs_conn_rdma_buf_num:
+
+beegfs_conn_rdma_buf_size:
+
+# Number of connections between nodes
+# https://doc.beegfs.io/latest/advanced_topics/client_tuning.html#parallel-network-requests
+# On compute nodes = number of cores. On login nodes more than cores to improvve responsiveness
+beegfs_conn_meta_max_internode_num:
+beegfs_conn_oss_max_internode_num:
+beegfs_conn_client_max_internode_num:
 ...
