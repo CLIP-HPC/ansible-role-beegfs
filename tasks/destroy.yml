@@ -4,7 +4,7 @@
     path: "{{ item.path }}"
     state: unmounted
   become: true
-  when: beegfs_enable.client | bool
+  when: beegfs_enable.client | default(false) | bool
   loop: "{{ beegfs_client_mounts | default([]) }}"
 
 
@@ -15,7 +15,7 @@
     state: stopped
   become: true
   when:
-    - beegfs_enable.oss | bool
+    - beegfs_enable.oss | default(false) | bool
     - item.dev is defined
   loop: "{{ beegfs_oss | dict2items }}"
 
@@ -25,7 +25,7 @@
     enabled: false
     state: stopped
   become: true
-  when: beegfs_enable.oss | bool
+  when: beegfs_enable.oss | default(false) | bool
   loop: "{{ beegfs_oss | dict2items }}"
 
 - name: Stop and disable BeeGFS server services
@@ -36,10 +36,10 @@
   become: true
   when: item.enable | bool
   loop:
-    - { name: beegfs-mgmtd, enable: "{{ beegfs_enable.mgmt }}" }
-    - { name: beegfs-meta, enable: "{{ beegfs_enable.meta }}" }
-    - { name: beegfs-mon, enable: "{{ beegfs_enable.mon }}" }
-    - { name: beegfs-oss-tuning, enable: "{{ beegfs_enable.tuning }}" }
+    - { name: beegfs-mgmtd, enable: "{{ beegfs_enable.mgmt | default(false) }}" }
+    - { name: beegfs-meta, enable: "{{ beegfs_enable.meta | default(false) }}" }
+    - { name: beegfs-mon, enable: "{{ beegfs_enable.mon | default(false) }}" }
+    - { name: beegfs-oss-tuning, enable: "{{ beegfs_enable.tuning | default(false) }}" }
 
 - name: Clear storeStorageDirectory
   ansible.builtin.lineinfile:
@@ -48,7 +48,7 @@
     line: "storeStorageDirectory ="
   loop: "{{ beegfs_oss | dict2items }}"
   become: true
-  when: beegfs_enable.oss | bool
+  when: beegfs_enable.oss | default(false) | bool
 
 - name: Clear storeFsUUID
   ansible.builtin.lineinfile:
@@ -57,7 +57,7 @@
     line: "storeFsUUID ="
   loop: "{{ beegfs_oss | dict2items }}"
   become: true
-  when: beegfs_enable.oss | bool
+  when: beegfs_enable.oss | default(false) | bool
 
 - name: Unmount BeeGFS oss paths if mounted
   vars:
@@ -70,7 +70,7 @@
   loop_control:
     label: "{{ item.1 }}"
   when:
-    - beegfs_enable.oss | bool
+    - beegfs_enable.oss | default(false) | bool
 
 - name: Remove all beegfs oss folders
   vars:
@@ -83,7 +83,7 @@
   loop_control:
     label: "{{ item.1 }}"
   when:
-    - beegfs_enable.oss | bool
+    - beegfs_enable.oss | default(false) | bool
 
 - name: Ensure meta device is not currently mounted
   become: true
@@ -102,6 +102,6 @@
   become: true
   when: item.enable | bool
   loop:
-    - { name: "{{ beegfs_meta_path }}", enable: "{{ beegfs_enable.meta }}" }
-    - { name: "{{ beegfs_mgmt_path }}", enable: "{{ beegfs_enable.mgmt }}" }
+    - { name: "{{ beegfs_meta_path }}", enable: "{{ beegfs_enable.meta | default(false) }}" }
+    - { name: "{{ beegfs_mgmt_path }}", enable: "{{ beegfs_enable.mgmt | default(false) }}" }
 ...

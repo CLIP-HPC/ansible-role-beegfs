@@ -13,7 +13,7 @@
       - beegfs_node_num_id is defined
       - beegfs_node_num_id != None
     fail_msg: "beegfs_node_num_id must be set to a non-empty value"
-  when: beegfs_enable.oss | bool or beegfs_enable.meta | bool
+  when: beegfs_enable.oss | default(false) | bool or beegfs_enable.meta | default(false) | bool
   tags: always
 
 - name: Calculate and store BeeGFS node number
@@ -42,10 +42,10 @@
         - item.name in ansible_facts.services
         - item.enable | bool
       loop:
-        - { name: "beegfs-client.service", enable: "{{ beegfs_enable.client }}" }
-        - { name: "beegfs-mgmtd.service", enable: "{{ beegfs_enable.mgmt }}" }
-        - { name: "beegfs-meta.service", enable: "{{ beegfs_enable.meta }}" }
-        - { name: "beegfs-mon.service", enable: "{{ beegfs_enable.mon }}" }
+        - { name: "beegfs-client.service", enable: "{{ beegfs_enable.client | default(false)  }}" }
+        - { name: "beegfs-mgmtd.service", enable: "{{ beegfs_enable.mgmt | default(false) }}" }
+        - { name: "beegfs-meta.service", enable: "{{ beegfs_enable.meta | default(false) }}" }
+        - { name: "beegfs-mon.service", enable: "{{ beegfs_enable.mon | default(false) }}" }
 
     - name: Stop BeeGFS storage services
       vars:
@@ -71,8 +71,8 @@
         state: absent
       when: item.enable | bool
       loop:
-        - { name: "{{ beegfs_meta_path }}", enable: "{{ beegfs_enable.meta }}" }
-        - { name: "{{ beegfs_mgmt_path }}", enable: "{{ beegfs_enable.mgmt }}" }
+        - { name: "{{ beegfs_meta_path }}", enable: "{{ beegfs_enable.meta | default(false) }}" }
+        - { name: "{{ beegfs_mgmt_path }}", enable: "{{ beegfs_enable.mgmt | default(false) }}" }
 
 
 - name: Create BeeGFS config directories
@@ -166,10 +166,10 @@
   when: item.enable | bool
   tags: always
   loop:
-    - { name: beegfs-mgmtd, enable: "{{ beegfs_enable.mgmt }}", state: started }
-    - { name: beegfs-meta, enable: "{{ beegfs_enable.meta }}", state: started }
-    - { name: beegfs-mon, enable: "{{ beegfs_enable.mon }}", state: started }
-    - { name: beegfs-oss-tuning, enable: "{{ beegfs_enable.tuning }}" }
+    - { name: beegfs-mgmtd, enable: "{{ beegfs_enable.mgmt | default(false) }}", state: started }
+    - { name: beegfs-meta, enable: "{{ beegfs_enable.meta | default(false) }}", state: started }
+    - { name: beegfs-mon, enable: "{{ beegfs_enable.mon | default(false) }}", state: started }
+    - { name: beegfs-oss-tuning, enable: "{{ beegfs_enable.tuning | default(false) }}" }
 
 - name: Start and enable BeeGFS storage services
   ansible.builtin.service:
@@ -178,7 +178,7 @@
     state: started
   become: true
   tags: always
-  when: beegfs_enable.oss | bool
+  when: beegfs_enable.oss | default(false) | bool
   loop: "{{ beegfs_oss | dict2items }}"
 
 - name: Configure BeeGFS clients
