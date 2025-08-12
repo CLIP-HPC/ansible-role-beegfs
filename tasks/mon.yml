@@ -1,10 +1,4 @@
 ---
-- name: Install packages for BeeGFS monitoring
-  ansible.builtin.package:
-    name: beegfs-mon
-    state: "{{ beegfs_package_action }}"
-  become: true
-  notify: Restart BeeGFS mon service
 
 - name: Configure beegfs-mon config file to point to the specified management host
   ansible.builtin.lineinfile:

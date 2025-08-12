@@ -1,11 +1,4 @@
 ---
-- name: Install packages for BeeGFS management server
-  ansible.builtin.package:
-    name:
-      - beegfs-mgmtd
-    state: "{{ beegfs_package_action }}"
-  become: true
-  notify: Restart BeeGFS mgmt service
 
 - name: Disable TLS authentication (Development)
   ansible.builtin.lineinfile:

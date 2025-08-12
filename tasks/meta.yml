@@ -1,12 +1,4 @@
 ---
-- name: Install packages for BeeGFS metadata server
-  ansible.builtin.package:
-    name:
-      - beegfs-meta
-      - libbeegfs-ib # Infiniband support
-    state: "{{ beegfs_package_action }}"
-  become: true
-  notify: Restart BeeGFS meta service
 
 - name: Create directory for BeeGFS metadata
   ansible.builtin.file:
@@ -78,7 +70,7 @@
     regexp: "^tuneNumWorkers"
     line: "tuneNumWorkers               = {{ beegfs_meta_tune_num_workers }}"
   become: true
-  when: beegfs_meta_tune_num_workers
+  when: beegfs_meta_tune_num_workers | default(false, true)
   notify: Restart BeeGFS meta service
 
 
@@ -89,7 +81,7 @@
     regexp: "^connMaxInternodeNum"
     line: connMaxInternodeNum           = {{ beegfs_conn_meta_max_internode_num }}
     backrefs: true
-  when: beegfs_conn_meta_max_internode_num
+  when: beegfs_conn_meta_max_internode_num | default(false, true)
   notify: Restart BeeGFS meta service
 
 
@@ -99,7 +91,7 @@
     path: /etc/beegfs/beegfs-meta.conf
     regexp: ^connRDMABufSize
     line: connRDMABufSize               = {{ beegfs_conn_rdma_buf_size }}
-  when: beegfs_conn_rdma_buf_size
+  when: beegfs_conn_rdma_buf_size | default(false, true)
   notify: Restart BeeGFS meta service
 
 
@@ -111,5 +103,5 @@
     path: /etc/beegfs/beegfs-meta.conf
     regexp: ^connRDMABufNum
     line: connRDMABufNum                = {{ beegfs_conn_rdma_buf_num }}
-  when: beegfs_conn_rdma_buf_num
+  when: beegfs_conn_rdma_buf_num | default(false, true)
   notify: Restart BeeGFS meta service

@@ -1,1 +1,17 @@
-beegfs_client_config_file: "beegfs-client{{ (beegfs_client_scope_config | bool) | ternary('-' + beegfs_mgmt_host, '') }}.conf"
+---
+beegfs_packages:
+  mgmt:
+    - beegfs-mgmtd
+  mon:
+    - beegfs-mon
+  meta:
+    - beegfs-meta
+    - libbeegfs-ib
+  oss:
+    - beegfs-storage
+    - libbeegfs-ib
+  client:
+    - dkms
+    - beegfs-client-dkms
+    - beegfs-tools
+    - beegfs-utils

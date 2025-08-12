@@ -1,12 +1,4 @@
 ---
-- name: Install packages for BeeGFS object storage server
-  ansible.builtin.package:
-    name:
-      - beegfs-storage
-      - libbeegfs-ib # Infiniband support
-    state: "{{ beegfs_package_action }}"
-  become: true
-  notify: Restart BeeGFS storage service
 
 - name: Create a list of devices that are mounted
   ansible.builtin.set_fact:
@@ -104,7 +96,7 @@
     regexp: "^tuneNumWorkers"
     line: "tuneNumWorkers               = {{ beegfs_oss_tune_num_workers }}"
   become: true
-  when: beegfs_oss_tune_num_workers
+  when: beegfs_oss_tune_num_workers | default(false, true)
   notify: Restart BeeGFS storage service
 
 
@@ -115,7 +107,7 @@
     regexp: "^connMaxInternodeNum"
     line: connMaxInternodeNum           = {{ beegfs_conn_oss_max_internode_num }}
     backrefs: true
-  when: beegfs_conn_oss_max_internode_num
+  when: beegfs_conn_oss_max_internode_num | default(false, true)
   notify: Restart BeeGFS storage service
 
 - name: Configure RMDA buffer size for BeeGFS server
@@ -124,7 +116,7 @@
     path: /etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf
     regexp: ^connRDMABufSize
     line: connRDMABufSize               = {{ beegfs_conn_rdma_buf_size }}
-  when: beegfs_conn_rdma_buf_size
+  when: beegfs_conn_rdma_buf_size | default(false, true)
 
 - name: Configure RMDA buffer number for BeeGFS server
   become: true
@@ -134,4 +126,4 @@
     path: /etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf
     regexp: ^connRDMABufNum
     line: connRDMABufNum                = {{ beegfs_conn_rdma_buf_num }}
-  when: beegfs_conn_rdma_buf_num
+  when: beegfs_conn_rdma_buf_num | default(false, true)

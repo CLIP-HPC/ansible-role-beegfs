@@ -100,6 +100,8 @@
     - Restart BeeGFS mon service
     - Restart BeeGFS storage service
 
+- name: Import install.yml
+  ansible.builtin.import_tasks: install.yml
 
 - name: Configure RDMA
   ansible.builtin.import_tasks: rdma.yml

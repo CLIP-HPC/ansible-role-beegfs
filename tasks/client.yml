@@ -1,50 +1,4 @@
 ---
-- name: Ensure kernel development headers are present
-  ansible.builtin.dnf:
-    name: "{{ beegfs_distro_vars[ansible_os_family]['kernel_dev_pkg'] }}-{{ ansible_kernel }}"
-    state: present
-  become: true
-
-- name: Ensure gcc is installed
-  ansible.builtin.package:
-    name: "gcc"
-    state: present
-  become: true
-
-- name: Define override for beegfs-client-build.mk
-  become: true
-  ansible.builtin.copy:
-    dest: /etc/beegfs/beegfs-client-build.mk
-    mode: "0644"
-    content: |
-      # BeeGFS client module DKMS build configuration
-      # This file is only used when building via DKMS.
-      # The module needs to be rebuilt after this file has been changed.
-
-      # If using thirdparty OFED specify the path to the installation here.
-      # Examples:
-      #OFED_INCLUDE_PATH=/usr/src/ofa_kernel/default/include
-      #OFED_INCLUDE_PATH=/usr/src/openib/include
-      {% if beegfs_client_ofed_include_path %}
-      OFED_INCLUDE_PATH={{ beegfs_client_ofed_include_path }}
-      {% endif %}
-
-- name: Install DKMS packages
-  ansible.builtin.package:
-    name: "dkms"
-    state: present
-  become: true
-
-- name: Install packages for BeeGFS client
-  ansible.builtin.package:
-    name:
-      - beegfs-client-dkms
-      - beegfs-tools
-      - beegfs-utils
-    state: "present"
-  become: true
-
-
 - name: Ensure the BeeGFS mount points exists
   ansible.builtin.file:
     mode: "0755"
@@ -128,7 +82,7 @@
     regexp: ^connRDMABufSize
     line: connRDMABufSize               = {{ beegfs_conn_rdma_buf_size }}
   loop: "{{ beegfs_client_mounts | default([]) }}"
-  when: beegfs_conn_rdma_buf_size
+  when: beegfs_conn_rdma_buf_size | default(false, true)
 
 - name: Configure RMDA buffer number for BeeGFS client
   become: true
@@ -139,7 +93,7 @@
     regexp: ^connRDMABufNum
     line: connRDMABufNum                = {{ beegfs_conn_rdma_buf_num }}
   loop: "{{ beegfs_client_mounts | default([]) }}"
-  when: beegfs_conn_rdma_buf_num
+  when: beegfs_conn_rdma_buf_num | default(false, true)
 
 - name: Configure connMaxInternodeNum for BeeGFS client
   become: true
@@ -150,7 +104,7 @@
     regexp: "^connMaxInternodeNum"
     line: connMaxInternodeNum           = {{ beegfs_conn_client_max_internode_num }}
     backrefs: true
-  when: beegfs_conn_client_max_internode_num
+  when: beegfs_conn_client_max_internode_num | default(false, true)
   loop: "{{ beegfs_client_mounts | default([]) }}"
 
 

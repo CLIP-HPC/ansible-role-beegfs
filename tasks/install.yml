@@ -1,0 +1,45 @@
+---
+- name: Define override for beegfs-client-build.mk
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/beegfs/beegfs-client-build.mk
+    mode: "0644"
+    content: |
+      # BeeGFS client module DKMS build configuration
+      # This file is only used when building via DKMS.
+      # The module needs to be rebuilt after this file has been changed.
+
+      # If using thirdparty OFED specify the path to the installation here.
+      # Examples:
+      #OFED_INCLUDE_PATH=/usr/src/ofa_kernel/default/include
+      #OFED_INCLUDE_PATH=/usr/src/openib/include
+      {% if beegfs_client_ofed_include_path %}
+      OFED_INCLUDE_PATH={{ beegfs_client_ofed_include_path }}
+      {% endif %}
+  when: beegfs_enable.client | bool
+
+
+- name: install | Build host-specific list of required beegfs packages
+  become: true
+  tags: install
+  ansible.builtin.set_fact:
+    beegfs_pkglist: "{{ beegfs_pkglist | default([]) + item.value }}"
+  loop: "{{ beegfs_packages | dict2items }}"
+  when: (beegfs_enable.get(item.key, false))
+
+- name: install | Install required beegfs packages
+  become: true
+  tags: install
+  ansible.builtin.dnf:
+    name: "{{ beegfs_pkglist | reject('eq', '') }}"
+    state: "{{ beegfs_package_action }}"
+    install_weak_deps: false # avoids getting recommended packages
+  when: beegfs_pkglist | length > 0
+
+- name: install | Install RDMA packages
+  become: true
+  tags: install
+  ansible.builtin.package:
+    name: "{{ beegfs_distro_vars[ansible_os_family]['rdma_dev_pkgs'] }}"
+    state: "{{ beegfs_package_action }}"
+  when: beegfs_rdma | bool
