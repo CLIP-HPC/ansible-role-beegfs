@@ -98,8 +98,6 @@ beegfs_enable_quota: false
 
 beegfs_client_scope_config: true
 
-beegfs_client_ofed_include_path:
-
 beegfs_node_num_id:
 
 beegfs_mon_db_hostname:

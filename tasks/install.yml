@@ -1,21 +1,21 @@
 ---
-- name: Define override for beegfs-client-build.mk
-  become: true
-  ansible.builtin.copy:
-    dest: /etc/beegfs/beegfs-client-build.mk
-    mode: "0644"
-    content: |
-      # BeeGFS client module DKMS build configuration
-      # This file is only used when building via DKMS.
-      # The module needs to be rebuilt after this file has been changed.
 
-      # If using thirdparty OFED specify the path to the installation here.
-      # Examples:
-      #OFED_INCLUDE_PATH=/usr/src/ofa_kernel/default/include
-      #OFED_INCLUDE_PATH=/usr/src/openib/include
-      {% if beegfs_client_ofed_include_path %}
-      OFED_INCLUDE_PATH={{ beegfs_client_ofed_include_path }}
-      {% endif %}
+- name: Check for ofed_info
+  ansible.builtin.command: "ofed_info -s"
+  register: _ofed_info
+  failed_when: false
+  changed_when: false
+
+- name: Determine if ofed is in use
+  ansible.builtin.set_fact:
+    beegfs_ofed_installed: "{{ _ofed_info.rc == 0 }}"
+
+- name: Generate beegfs-client-build.mk
+  become: true
+  ansible.builtin.template:
+    dest: /etc/beegfs/beegfs-client-build.mk
+    src: beegfs-client-build.mk.j2
+    mode: "0644"
   when: beegfs_enable.client | bool
 
 
