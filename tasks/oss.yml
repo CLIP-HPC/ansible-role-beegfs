@@ -59,6 +59,7 @@
   ansible.builtin.include_tasks: fs.yml
   vars:
     oss_path: "{{ beegfs_oss_path_prefix + oss_dev }}"
+    oss_dev_label: "beegfs-ST-{{ oss_idx }}"
   tags: ["beegfs", "oss", "fs"]
   args:
     apply:
@@ -66,6 +67,7 @@
   loop: "{{ oss_devices }}"
   loop_control:
     loop_var: oss_dev
+    index_var: oss_idx
 
 
 - name: Run storage service setup script

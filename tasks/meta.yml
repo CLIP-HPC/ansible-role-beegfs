@@ -22,7 +22,7 @@
       community.general.filesystem:
         dev: "{{ beegfs_meta_dev }}"
         fstype: "{{ meta_fstype }}"
-        opts: "{{ beegfs_meta_filesystem_opts }}"
+        opts: "{{ beegfs_meta_filesystem_opts }} -L {{ beegfs_meta_dev_label }}"
         force: "{{ beegfs_force_format }}"
       notify: Restart BeeGFS meta service
 
@@ -30,7 +30,7 @@
       vars:
         meta_fstype: "{{ beegfs_meta_fstype | default(beegfs_fstype) }}"
       ansible.posix.mount:
-        src: "{{ beegfs_meta_dev }}"
+        src: "/dev/disk/by-label/{{ beegfs_meta_dev_label }}"
         path: "{{ beegfs_meta_path }}"
         fstype: "{{ meta_fstype }}"
         opts: "{{ beegfs_meta_mount_opts }}"

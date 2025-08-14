@@ -31,6 +31,16 @@
         (beegfs_package_action | lower == "latest")
   become: true
   block:
+    - name: Unmount beegfs file system
+      vars:
+        beegfs_client_config_file: "{{ (beegfs_client_mounts | length > 1) | ternary('beegfs-client-{{ item.port }}.conf', 'beegfs-client.conf') }}"
+      ansible.posix.mount:
+        name: "{{ item.path }}"
+        state: absent
+      loop: "{{ beegfs_client_mounts | default([]) }}"
+      when: beegfs_enable.client | default(false) | bool
+
+
     - name: Probe installed services
       ansible.builtin.service_facts:
 
@@ -74,6 +84,11 @@
         - { name: "{{ beegfs_meta_path }}", enable: "{{ beegfs_enable.meta | default(false) }}" }
         - { name: "{{ beegfs_mgmt_path }}", enable: "{{ beegfs_enable.mgmt | default(false) }}" }
 
+    - name: Remove Beegfs Storage config directories
+      ansible.builtin.file:
+        path: "/etc/beegfs/{{ item.key }}.d/"
+        state: absent
+      loop: "{{ beegfs_oss | dict2items }}"
 
 - name: Create BeeGFS config directories
   ansible.builtin.file:

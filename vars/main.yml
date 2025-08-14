@@ -15,3 +15,5 @@ beegfs_packages:
     - beegfs-client-dkms
     - beegfs-tools
     - beegfs-utils
+
+beegfs_meta_dev_label: "beegfs-meta"

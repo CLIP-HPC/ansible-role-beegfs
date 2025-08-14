@@ -22,7 +22,7 @@
     dev: "{{ oss_dev }}"
     fstype: "{{ beegfs_fstype }}"
     force: "{{ beegfs_force_format | bool }}"
-    opts: "{{ beegfs_filesystem_opts }}"
+    opts: "{{ beegfs_filesystem_opts }} -L {{ oss_dev_label }}"
   when: (oss_dev_real not in mounted_devs) or (beegfs_force_format | bool)
   become: true
 
@@ -38,7 +38,7 @@
 - name: Mount filesystem, fail if the fstype doesn't match
   become: true
   ansible.posix.mount:
-    src: "{{ oss_dev }}"
+    src: "/dev/disk/by-label/{{ oss_dev_label }}"
     path: "{{ oss_path }}"
     fstype: "{{ beegfs_fstype }}"
     state: mounted
