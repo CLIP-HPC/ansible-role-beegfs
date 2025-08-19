@@ -1,0 +1,26 @@
+--- common/storage/RdmaInfo.c.orig      2025-08-19 00:38:16.877817994 +0200
++++ common/storage/RdmaInfo.c   2025-08-19 00:53:37.061492684 +0200
+@@ -55,7 +55,11 @@
+    bool             is_gpu = false;
+
+    // Test the first page of the request to determine the memory type.
++   #ifdef KERNEL_HAS_IOV_ITER_GET_PAGES2
++   status = iov_iter_get_pages2(&iter_copy, &page, PAGE_SIZE, 1, &page_offset);
++   #else
+    status = iov_iter_get_pages(&iter_copy, &page, PAGE_SIZE, 1, &page_offset);
++   #endif
+    if (unlikely(status <= 0))
+    {
+       // 0 means the iter is empty, so just indicate that it's not an NVFS call.
+@@ -128,7 +132,11 @@
+
+    while (iov_iter_count(&iter_copy) > 0)
+    {
++      #ifdef KERNEL_HAS_IOV_ITER_GET_PAGES2
++      result = iov_iter_get_pages_alloc2(&iter_copy, &pages, iov_iter_count(&iter_copy), &page_offset);
++      #else
+       result = iov_iter_get_pages_alloc(&iter_copy, &pages, iov_iter_count(&iter_copy), &page_offset);
++      #endif
+       if (result < 0)
+       {
+          printk_fhgfs(KERN_ERR, "RdmaInfo_iovToSglist: no memory pages\n");

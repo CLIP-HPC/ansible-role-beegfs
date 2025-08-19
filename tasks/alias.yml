@@ -56,11 +56,9 @@
 
     - name: Create aliases BeeGFS storage targets
       vars:
-        # yamllint disable rule:line-length
-        oss_target_id: "{{ (beegfs_node_num_id | int) + (oss_index + 1) * beegfs_target_id_multiplier / 10  + (oss_index + 1) % (oss_item.0['value'].devices | length) + 1 }}"
-        alias: "{{ inventory_hostname }}-oss-{{ oss_item.0['key'] }}-{{ oss_item.1 | replace('/dev/', '') }}"
+        alias: "{{ inventory_hostname }}-{{ beegfs_oss_labels_mount_paths[oss_item.1].label }}"
       ansible.builtin.command: >
-        /usr/sbin/beegfs target set-alias s:{{ oss_target_id | int | string }} {{ alias }}
+        /usr/sbin/beegfs target set-alias s:{{ beegfs_oss_labels_mount_paths[oss_item.1].oss_target_id | int | string }} {{ alias }}
       when: beegfs_enable.oss | default(false) | bool
       register: beegfs_oss_target_alias
       changed_when: beegfs_oss_target_alias.stderr == "Alias set to " + alias

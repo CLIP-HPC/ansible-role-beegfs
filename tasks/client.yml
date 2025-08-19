@@ -41,7 +41,7 @@
     line: connClientPort                = {{ item.port }}
   loop: "{{ beegfs_client_mounts | default([]) }}"
 
-- name: Configure connInterFacesFile for BeeGFS client
+- name: Configure connInterfacesFile for BeeGFS client
   become: true
   vars:
     beegfs_client_config_file: "{{ (beegfs_client_mounts | length > 1) | ternary('beegfs-client-{{ item.port }}.conf', 'beegfs-client.conf') }}"
@@ -59,7 +59,7 @@
   ansible.builtin.lineinfile:
     dest: /etc/beegfs/{{ beegfs_client_config_file }}
     regexp: "^connRDMAInterfacesFile"
-    line: connRDMAInterfacesFile        = /etc/beegfs/connInterfacesFile
+    line: connRDMAInterfacesFile        = /etc/beegfs/connRDMAInterfacesFile
   loop: "{{ beegfs_client_mounts | default([]) }}"
 
 - name: Configure quotaEnabled for BeeGFS client

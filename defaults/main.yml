@@ -139,4 +139,7 @@ beegfs_conn_rdma_buf_size:
 beegfs_conn_meta_max_internode_num:
 beegfs_conn_oss_max_internode_num:
 beegfs_conn_client_max_internode_num:
-...
+
+
+beegfs_nvfs_include_path:
+beegfs_nvidia_include_path:

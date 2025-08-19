@@ -58,8 +58,8 @@
 - name: Prepare storage devices
   ansible.builtin.include_tasks: fs.yml
   vars:
-    oss_path: "{{ beegfs_oss_path_prefix + oss_dev }}"
-    oss_dev_label: "beegfs-ST-{{ oss_idx }}"
+    oss_path: "{{ beegfs_oss_labels_mount_paths[oss_dev].mount_path }}"
+    oss_dev_label: "{{ beegfs_oss_labels_mount_paths[oss_dev].label }}"
   tags: ["beegfs", "oss", "fs"]
   args:
     apply:
@@ -72,20 +72,20 @@
 
 - name: Run storage service setup script
   vars:
-    oss_path: "{{ beegfs_oss_path_prefix + item }}"
-    oss_replace: "{{ '-r' if ix == 0 else '' }}"
-    oss_target_id: "{{ (oss_num_id | int) + (ix + 1) }}"
+    oss_path: "{{ beegfs_oss_labels_mount_paths[oss_dev].mount_path }}"
+    oss_replace: "{{ '-r' if oss_idx == 0 else '' }}"
   loop: "{{ oss_devices }}"
   loop_control:
-    index_var: ix
+    index_var: oss_idx
+    loop_var: oss_dev
   ansible.builtin.command: |
     /opt/beegfs/sbin/beegfs-setup-storage -f \
     -p {{ oss_path }}  \
     {{ oss_replace }} \
     -m {{ beegfs_mgmt_host }} \
     -c /etc/beegfs/{{ oss_port }}.d/beegfs-storage.conf \
-    -s {{ oss_num_id | int }} \
-    -i {{ oss_target_id | int }} \
+    -s {{ beegfs_oss_labels_mount_paths[oss_dev].oss_storage_id | int }} \
+    -i {{ beegfs_oss_labels_mount_paths[oss_dev].oss_target_id | int }} \
   args:
     creates: "{{ oss_path }}/targetNumID"
   become: true

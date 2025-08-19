@@ -16,11 +16,6 @@
   when: beegfs_enable.oss | default(false) | bool or beegfs_enable.meta | default(false) | bool
   tags: always
 
-- name: Calculate and store BeeGFS node number
-  ansible.builtin.set_fact:
-    beegfs_node_num_id: "{{ (beegfs_node_num_id | int) * (beegfs_target_id_multiplier | int) | int }}"
-  tags: always
-
 - name: Configure BeeGFS repos
   ansible.builtin.import_tasks: repos.yml
   when: beegfs_add_repos | bool
@@ -32,8 +27,6 @@
   become: true
   block:
     - name: Unmount beegfs file system
-      vars:
-        beegfs_client_config_file: "{{ (beegfs_client_mounts | length > 1) | ternary('beegfs-client-{{ item.port }}.conf', 'beegfs-client.conf') }}"
       ansible.posix.mount:
         name: "{{ item.path }}"
         state: absent
@@ -52,7 +45,7 @@
         - item.name in ansible_facts.services
         - item.enable | bool
       loop:
-        - { name: "beegfs-client.service", enable: "{{ beegfs_enable.client | default(false)  }}" }
+        - { name: "beegfs-client.service", enable: "{{ beegfs_enable.client | default(false) }}" }
         - { name: "beegfs-mgmtd.service", enable: "{{ beegfs_enable.mgmt | default(false) }}" }
         - { name: "beegfs-meta.service", enable: "{{ beegfs_enable.meta | default(false) }}" }
         - { name: "beegfs-mon.service", enable: "{{ beegfs_enable.mon | default(false) }}" }
@@ -169,6 +162,15 @@
     group: root
   become: true
 
+
+- name: Create connRDMAInterfacesFile
+  ansible.builtin.template:
+    src: connInterfacesFile.j2
+    dest: /etc/beegfs/connRDMAInterfacesFile
+    mode: "0644"
+    owner: root
+    group: root
+  become: true
 
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers
