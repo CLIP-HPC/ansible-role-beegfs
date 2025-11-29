@@ -143,3 +143,4 @@ beegfs_conn_client_max_internode_num:
 
 beegfs_nvfs_include_path:
 beegfs_nvidia_include_path:
+beegfs_disable_nvfs_detection: false

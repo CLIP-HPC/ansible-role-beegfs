@@ -12,19 +12,21 @@
     beegfs_ofed_installed: "{{ _ofed_info.rc == 0 }}"
   tags: install
 
-- name: Check for NVFS include path
-  ansible.builtin.shell: "find /usr/src/nvidia-* -name nvfs-dma.h"
-  register: _nvfs_include_path
-  failed_when: _nvfs_include_path.rc > 1
-  changed_when: false
-  tags: install
+- name: NVFS detection
+  when: not beegfs_disable_nvfs_detection | bool
+  block:
+    - name: Check for NVFS include path
+      ansible.builtin.shell: "find /usr/src/nvidia-* -name nvfs-dma.h"
+      register: _nvfs_include_path
+      failed_when: _nvfs_include_path.rc > 1
+      changed_when: false
+      tags: install
 
-
-- name: Set NVFS include path
-  ansible.builtin.set_fact:
-    beegfs_nvfs_include_path: "{{ _nvfs_include_path.stdout | trim | dirname }}"
-  when: _nvfs_include_path.rc == 0
-  tags: install
+    - name: Set NVFS include path
+      ansible.builtin.set_fact:
+        beegfs_nvfs_include_path: "{{ _nvfs_include_path.stdout | trim | dirname }}"
+      when: _nvfs_include_path.rc == 0
+      tags: install
 
 - name: Run configure to generate config-host.h in the NVFS include directory
   ansible.builtin.command:
@@ -83,31 +85,3 @@
     name: "{{ beegfs_distro_vars[ansible_os_family]['rdma_dev_pkgs'] }}"
     state: "{{ beegfs_package_action }}"
   when: beegfs_rdma | bool
-
-# Workaround because of kernel backport
-- name: Fix kernel issue
-  when: beegfs_enable.client | bool
-  tags: install
-  block:
-    - name: Load beegfs module
-      become: true
-      community.general.modprobe:
-        name: beegfs
-        state: present
-      ignore_errors: true
-      register: _beegfs_modprobe
-
-    - name: Apply RdmaInfo.c.patch file
-      become: true
-      ansible.posix.patch:
-        src: RdmaInfo.c.patch
-        basedir: /usr/src/beegfs-8.1.0/source
-      tags: install
-      when: _beegfs_modprobe.rc is defined and _beegfs_modprobe.rc != 0
-
-    - name: Run DKMS autoinstall
-      become: true
-      ansible.builtin.command: /usr/sbin/dkms autoinstall
-      when: _beegfs_modprobe.rc is defined and _beegfs_modprobe.rc != 0
-      register: _dkms_autoinstall
-      changed_when: _dkms_autoinstall.rc != 0
