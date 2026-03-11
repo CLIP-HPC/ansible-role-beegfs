@@ -2,14 +2,14 @@
 
 - name: Check for ofed_info
   ansible.builtin.command: "ofed_info -s"
-  register: _ofed_info
+  register: beegfs_ofed_info
   failed_when: false
   changed_when: false
   tags: install
 
 - name: Determine if ofed is in use
   ansible.builtin.set_fact:
-    beegfs_ofed_installed: "{{ _ofed_info.rc == 0 }}"
+    beegfs_ofed_installed: "{{ beegfs_ofed_info.rc == 0 }}"
   tags: install
 
 - name: NVFS detection
@@ -17,15 +17,15 @@
   block:
     - name: Check for NVFS include path
       ansible.builtin.shell: "find /usr/src/nvidia-* -name nvfs-dma.h"
-      register: _nvfs_include_path
-      failed_when: _nvfs_include_path.rc > 1
+      register: beegfs_nvfs_include_path_result
+      failed_when: beegfs_nvfs_include_path_result.rc > 1
       changed_when: false
       tags: install
 
     - name: Set NVFS include path
       ansible.builtin.set_fact:
-        beegfs_nvfs_include_path: "{{ _nvfs_include_path.stdout | trim | dirname }}"
-      when: _nvfs_include_path.rc == 0
+        beegfs_nvfs_include_path: "{{ beegfs_nvfs_include_path_result.stdout | trim | dirname }}"
+      when: beegfs_nvfs_include_path_result.rc == 0
       tags: install
 
 - name: Run configure to generate config-host.h in the NVFS include directory
@@ -40,15 +40,15 @@
 
 - name: Check for NVIDIA include path
   ansible.builtin.shell: "find /usr/src/nvidia-*/nvidia/ -name nv-p2p.h"
-  register: _nvidia_include_path
-  failed_when: _nvidia_include_path.rc > 1
+  register: beegfs_nvidia_include_path_result
+  failed_when: beegfs_nvidia_include_path_result.rc > 1
   changed_when: false
   tags: install
 
 - name: Set NVIDIA include path
   ansible.builtin.set_fact:
-    beegfs_nvidia_include_path: "{{ _nvidia_include_path.stdout | trim | dirname }}"
-  when: _nvidia_include_path.rc == 0
+    beegfs_nvidia_include_path: "{{ beegfs_nvidia_include_path_result.stdout | trim | dirname }}"
+  when: beegfs_nvidia_include_path_result.rc == 0
   tags: install
 
 - name: Generate beegfs-client-build.mk
@@ -65,7 +65,7 @@
   become: true
   tags: install
   ansible.builtin.set_fact:
-    beegfs_pkglist: "{{ beegfs_pkglist | default([]) + item.value }}"
+    beegfs_pkglist: "{{ beegfs_pkglist | default([]) + [item.value] }}"
   loop: "{{ beegfs_packages | dict2items }}"
   when: (beegfs_enable.get(item.key, false))
 
@@ -73,7 +73,7 @@
   become: true
   tags: install
   ansible.builtin.dnf:
-    name: "{{ beegfs_pkglist | reject('eq', '') }}"
+    name: "{{ beegfs_pkglist | reject('eq', '') | flatten }}"
     state: "{{ beegfs_package_action }}"
     install_weak_deps: false # avoids getting recommended packages
   when: beegfs_pkglist | length > 0

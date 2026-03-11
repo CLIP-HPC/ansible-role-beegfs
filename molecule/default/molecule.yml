@@ -6,14 +6,14 @@ driver:
   provider:
     name: virtualbox
 platforms:
-  - name: rocky9.5-vagrant
-    box: bento/rockylinux-9
+  - name: rocky10.1-vagrant
+    box: bento/rockylinux-10.1
     cpus: 1
     memory: 1024
     provider_raw_config_args:
       - "customize ['createhd', '--filename', '/tmp/beegfsDisk-rocky.vdi', '--size', 50 * 1024]"
       # yamllint disable-line
-      - "customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', '/tmp/beegfsDisk-rocky.vdi']" #noqa
+      - "customize ['storageattach', :id,  '--storagectl', 'VirtIO Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', '/tmp/beegfsDisk-rocky.vdi']" #noqa
     groups:
       - cluster_beegfs_mgmt
       - cluster_beegfs_mds
@@ -25,5 +25,4 @@ provisioner:
 scenario:
   name: default
 verifier:
-  name: testinfra
-  directory: ../tests
+  name: ansible

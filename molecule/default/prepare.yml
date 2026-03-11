@@ -3,7 +3,8 @@
   hosts: all
   gather_facts: false
   tasks:
-    - name: Install python for Ansible
-      ansible.builtin.raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+    - name: Install EPEL repository
+      ansible.builtin.dnf:
+        name: epel-release
+        state: present
       become: true
-      changed_when: false

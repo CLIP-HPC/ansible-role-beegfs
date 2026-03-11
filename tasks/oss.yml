@@ -1,8 +1,7 @@
 ---
-
 - name: Create a list of devices that are mounted
   ansible.builtin.set_fact:
-    mounted_devs: "{{ ansible_mounts | map(attribute='device') | list }}"
+    beegfs_mounted_devs: "{{ ansible_mounts | map(attribute='device') | list }}"
 
 - name: Create storage config dirs
   ansible.builtin.file:

@@ -12,14 +12,7 @@ galaxy_info:
   platforms:
     - name: EL
       versions:
-        - "9"
-    - name: Debian
-      versions:
-        - "stretch"
-    - name: Ubuntu
-      versions:
-        - "xenial"
-        - "bionic"
+        - "10"
   galaxy_tags:
     - cloud
     - storage

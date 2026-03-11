@@ -1,11 +1,4 @@
 ---
-- name: Ensure the BeeGFS mount points exists
-  ansible.builtin.file:
-    mode: "0755"
-    path: "{{ item.path }}"
-    state: directory
-  loop: "{{ beegfs_client_mounts | default([]) }}"
-  become: true
 
 
 - name: Make of copy of BeeGFS client config file if it doesn't exist
