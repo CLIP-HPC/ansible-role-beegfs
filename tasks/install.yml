@@ -76,6 +76,19 @@
     state: "{{ beegfs_package_action }}"
   when: beegfs_rdma | bool
 
+
+- name: Install kernel dev + modules
+  package:
+    name:
+      - "{{ beegfs_distro_vars[ansible_os_family].kernel_dev_pkg }}"
+      - "{{ beegfs_distro_vars[ansible_os_family].kernel_modules_pkg }}"
+    state: latest
+
+- name: Rebuild module dependencies
+  ansible.builtin.command:
+    cmd: depmod -a
+  changed_when: false
+
 - name: Generate beegfs-client-build.mk
   become: true
   ansible.builtin.template:
