@@ -25,6 +25,7 @@ beegfs_distro_vars:
     beegfs_repo_key: "https://www.beegfs.io/release/latest-stable/gpg/GPG-KEY-beegfs"
     beegfs_repo_file: "/etc/yum.repos.d/beegfs-rhel{{ ansible_distribution_major_version }}.repo"
     kernel_dev_pkg: "kernel-devel"
+    kernel_modules_pkg: "kernel-modules"
     rdma_dev_pkgs:
       - rdma-core
       - libibverbs
@@ -42,6 +43,7 @@ beegfs_distro_vars:
     beegfs_repo_key: "https://www.beegfs.io/release/latest-stable/gpg/DEB-GPG-KEY-beegfs"
     beegfs_repo_file: "/etc/apt/sources.list.d/beegfs_deb9.list"
     kernel_dev_pkg: "linux-headers"
+    kernel_modules_pkg: "linux-modules"
     rdma_dev_pkgs:
       - "librdmacm-dev"
       - "libibmad-dev"
